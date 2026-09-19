@@ -7,6 +7,6 @@
   "invoice-studio-pro": {
     "name": "Invoice Studio",
     "priceUSD": 70,
-    "file": "invoice-studio-pro.html"
+    "file": "products/invoice-studio-pro.zip"
   }
 }
