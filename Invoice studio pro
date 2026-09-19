@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invoice Studio — offline invoices, quotes and receipts</title>
+<meta name="description" content="Create invoices, quotes and receipts offline. No account, no subscription, no data leaves your computer. 150+ currencies, crypto payment details, 7 document languages.">
+<style>
+/* ============================================================
+   Invoice Studio v1.0
+   A single-file, offline invoicing desk.
+   Everything below is yours to edit. No build step, no bundler.
+   ============================================================ */
+
+:root{
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#FBFAF6;
+  --ink:#1A1C23;
+  --ink-soft:#585C69;
+  --ink-faint:#8D91A0;
+  --rule:#DFDACE;
+  --rule-soft:#EDE9E0;
+  --desk:#63666E;
+  --desk-dark:#4B4E55;
+  --accent:#2B4C9B;
+  --accent-soft:#E8EDF8;
+  --stamp:#B3341F;
+  --ok:#2F6B4F;
+  --field:#FFFFFF;
+  --shadow:0 1px 2px rgba(26,28,35,.06), 0 8px 24px rgba(26,28,35,.10);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.5;
+  color:var(--ink);
+  background:var(--desk);
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+
+/* ---------- top bar ---------- */
+.bar{
+  height:52px;
+  background:var(--ink);
+  color:#F3F1EC;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0 14px;
+  position:sticky;
+  top:0;
+  z-index:40;
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.brand .mark{
+  width:22px;height:22px;border-radius:3px;background:var(--paper);
+  display:grid;place-items:center;color:var(--ink);font-size:13px;font-weight:700;
+  font-family:var(--serif);
+}
+.brand small{font-weight:400;color:#9A9DA8;font-size:11px;margin-left:2px}
+
+.seg{display:flex;background:rgba(255,255,255,.08);border-radius:6px;padding:2px}
+.seg button{
+  border:0;background:transparent;color:#B9BCC6;padding:5px 12px;border-radius:4px;
+  font-size:13px;
+}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);font-weight:600}
+.bar .spacer{flex:1}
+
+.tbtn{
+  border:1px solid rgba(255,255,255,.18);background:transparent;color:#E8E6E1;
+  padding:6px 11px;border-radius:6px;font-size:13px;white-space:nowrap;
+}
+.tbtn:hover{background:rgba(255,255,255,.1)}
+.tbtn.solid{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:600}
+.tbtn.solid:hover{background:#fff}
+
+/* ---------- workspace ---------- */
+.workspace{display:flex;height:calc(100% - 52px);overflow:hidden}
+
+.panel{
+  width:392px;flex:none;background:var(--paper);overflow-y:auto;
+  border-right:1px solid rgba(0,0,0,.2);
+}
+.stage{
+  flex:1;overflow-y:auto;padding:26px 20px 80px;
+  background:
+    radial-gradient(1200px 500px at 50% -120px, rgba(255,255,255,.07), transparent 70%),
+    var(--desk);
+}
+
+/* ---------- panel internals ---------- */
+details.sec{border-bottom:1px solid var(--rule-soft)}
+details.sec > summary{
+  list-style:none;cursor:pointer;padding:13px 16px;display:flex;align-items:center;gap:8px;
+  font-weight:600;font-size:13.5px;user-select:none;
+}
+details.sec > summary::-webkit-details-marker{display:none}
+details.sec > summary::before{
+  content:"";width:6px;height:6px;border-right:1.5px solid var(--ink-faint);
+  border-bottom:1.5px solid var(--ink-faint);transform:rotate(-45deg);
+  transition:transform .15s ease;flex:none;margin-right:2px;
+}
+details.sec[open] > summary::before{transform:rotate(45deg)}
+details.sec > summary:hover{background:#F4F1EA}
+details.sec .body{padding:2px 16px 18px}
+summary .hint{margin-left:auto;font-weight:400;font-size:11.5px;color:var(--ink-faint)}
+
+label.f{display:block;margin:0 0 11px}
+label.f > span{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+.in{
+  width:100%;background:var(--field);border:1px solid var(--rule);border-radius:5px;
+  padding:7px 9px;font-size:13.5px;
+}
+.in:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+textarea.in{resize:vertical;min-height:62px;line-height:1.45}
+.row{display:flex;gap:9px}
+.row > *{flex:1;min-width:0}
+
+.mini{
+  border:1px solid var(--rule);background:#fff;border-radius:5px;padding:6px 10px;font-size:12.5px;
+}
+.mini:hover{background:#F4F1EA}
+.mini.danger{color:var(--stamp);border-color:#E7C9C2}
+.mini.danger:hover{background:#FBEFEC}
+
+/* items editor */
+.item{
+  border:1px solid var(--rule);border-radius:6px;background:#fff;padding:9px;margin-bottom:8px;
+}
+.item .top{display:flex;gap:8px;align-items:flex-start}
+.item .top textarea{min-height:40px}
+.item .grab{
+  flex:none;width:20px;height:20px;border:0;background:transparent;color:var(--ink-faint);
+  cursor:grab;font-size:13px;line-height:1;padding:0;margin-top:5px;
+}
+.item .x{
+  flex:none;border:0;background:transparent;color:var(--ink-faint);font-size:17px;line-height:1;
+  padding:2px 4px;margin-top:2px;border-radius:4px;
+}
+.item .x:hover{color:var(--stamp);background:#FBEFEC}
+.item .nums{display:flex;gap:7px;margin-top:7px;align-items:flex-end}
+.item .nums label{margin:0}
+.item .lineamt{
+  margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-soft);
+  padding-bottom:7px;white-space:nowrap;
+}
+.item.dragging{opacity:.4}
+.item.over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{
+  border:1px solid var(--rule);background:#fff;border-radius:20px;padding:4px 11px;font-size:12.5px;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.swatches{display:flex;gap:7px;flex-wrap:wrap}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.sw[aria-pressed="true"]{border-color:var(--ink)}
+
+.logo-drop{
+  border:1px dashed var(--rule);border-radius:6px;padding:12px;text-align:center;
+  background:#fff;color:var(--ink-faint);font-size:12.5px;
+}
+.logo-drop img{max-height:44px;max-width:150px;display:block;margin:0 auto 7px}
+
+.note{font-size:11.5px;color:var(--ink-faint);line-height:1.45;margin:6px 0 0}
+
+/* ---------- the sheet ---------- */
+.sheet-wrap{max-width:210mm;margin:0 auto}
+.sheet{
+  width:100%;min-height:297mm;background:#fff;color:#111;
+  box-shadow:0 2px 4px rgba(0,0,0,.2), 0 18px 50px rgba(0,0,0,.28);
+  padding:18mm 16mm;position:relative;overflow:hidden;
+}
+.sheet[data-tpl="classic"]{font-family:var(--serif);font-size:11.2pt;line-height:1.5}
+.sheet[data-tpl="modern"]{font-family:var(--sans);font-size:10.6pt;line-height:1.55}
+.sheet[data-tpl="compact"]{font-family:var(--sans);font-size:9.8pt;line-height:1.42;padding:14mm 13mm}
+.sheet[data-tpl="typed"]{font-family:var(--mono);font-size:9.6pt;line-height:1.55}
+.sheet[dir="rtl"]{font-family:"Vazirmatn",Tahoma,"Segoe UI",sans-serif}
+
+.doc-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-start}
+.doc-title{
+  margin:0;font-size:1.9em;letter-spacing:-.015em;line-height:1.05;font-weight:700;
+}
+.sheet[data-tpl="typed"] .doc-title{letter-spacing:.14em;font-size:1.3em}
+.doc-meta{margin-top:10px;font-size:.86em;color:#4A4E58}
+.doc-meta div{display:flex;gap:8px;margin-bottom:2px}
+.doc-meta b{font-weight:600;color:#1A1C23;min-width:78px;display:inline-block}
+.doc-logo img{max-height:56px;max-width:190px;display:block}
+.issuer{text-align:right;font-size:.88em;line-height:1.5}
+.sheet[dir="rtl"] .issuer{text-align:left}
+.issuer .nm{font-weight:700;font-size:1.12em}
+.issuer .ln{color:#4A4E58}
+
+.accent-rule{height:3px;background:var(--doc-accent,#2B4C9B);margin:14px 0 0;border-radius:2px}
+.sheet[data-tpl="typed"] .accent-rule{height:1px;background:#111}
+
+.parties{display:flex;gap:26px;margin:20px 0 4px}
+.party{flex:1;min-width:0}
+.party h4{
+  margin:0 0 5px;font-size:.72em;font-weight:700;letter-spacing:.06em;
+  color:var(--doc-accent,#2B4C9B);text-transform:uppercase;
+}
+.sheet[data-tpl="typed"] .party h4{color:#111}
+.party .nm{font-weight:700}
+.party .ln{color:#4A4E58;font-size:.92em;white-space:pre-line}
+
+table.lines{width:100%;border-collapse:collapse;margin:20px 0 0;font-size:.94em}
+table.lines th{
+  text-align:left;font-size:.78em;letter-spacing:.04em;font-weight:700;color:#fff;
+  background:var(--doc-accent,#2B4C9B);padding:7px 9px;text-transform:uppercase;
+}
+.sheet[dir="rtl"] table.lines th{text-align:right}
+table.lines th.n,table.lines td.n{text-align:right;white-space:nowrap}
+.sheet[dir="rtl"] table.lines th.n,.sheet[dir="rtl"] table.lines td.n{text-align:left}
+table.lines td{padding:8px 9px;border-bottom:1px solid #E6E2D8;vertical-align:top}
+table.lines td.n{font-variant-numeric:tabular-nums}
+table.lines tr:nth-child(even) td{background:#FAF9F5}
+.sheet[data-tpl="typed"] table.lines th{background:transparent;color:#111;border-bottom:1px solid #111;border-top:1px solid #111}
+.sheet[data-tpl="typed"] table.lines tr:nth-child(even) td{background:transparent}
+.li-desc{white-space:pre-line}
+
+.totals{display:flex;justify-content:flex-end;margin-top:14px}
+.sheet[dir="rtl"] .totals{justify-content:flex-start}
+.totals table{border-collapse:collapse;min-width:52%;font-size:.94em}
+.totals td{padding:5px 9px}
+.totals td.k{color:#4A4E58}
+.totals td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sheet[dir="rtl"] .totals td.v{text-align:left}
+.totals tr.grand td{
+  border-top:2px solid var(--doc-accent,#2B4C9B);font-weight:700;font-size:1.22em;padding-top:8px;
+}
+.totals tr.paidline td{color:var(--ok)}
+
+.blocks{display:flex;gap:26px;margin-top:26px;font-size:.88em}
+.block{flex:1;min-width:0}
+.block h4{
+  margin:0 0 5px;font-size:.78em;font-weight:700;letter-spacing:.05em;
+  color:var(--doc-accent,#2B4C9B);text-transform:uppercase;
+}
+.sheet[data-tpl="typed"] .block h4{color:#111}
+.block p{margin:0;white-space:pre-line;color:#3C4048;line-height:1.5}
+.crypto-row{display:flex;gap:8px;align-items:baseline;margin-bottom:3px}
+.crypto-row b{flex:none;min-width:74px;font-weight:700}
+.crypto-row code{font-family:var(--mono);font-size:.86em;word-break:break-all;color:#3C4048}
+
+.doc-foot{
+  position:absolute;left:16mm;right:16mm;bottom:12mm;padding-top:8px;
+  border-top:1px solid #E6E2D8;font-size:.78em;color:#7A7E88;
+  display:flex;justify-content:space-between;gap:16px;
+}
+
+.stamp{
+  position:absolute;top:118mm;right:22mm;
+  border:3px solid var(--stamp);color:var(--stamp);
+  padding:7px 20px;font-size:26px;font-weight:800;letter-spacing:.14em;
+  transform:rotate(-13deg);border-radius:5px;opacity:.82;pointer-events:none;
+  font-family:var(--sans);
+}
+.sheet[dir="rtl"] .stamp{right:auto;left:22mm;transform:rotate(13deg)}
+
+/* ---------- drawer ---------- */
+.drawer{
+  position:fixed;top:0;bottom:0;right:0;width:430px;max-width:92vw;background:var(--paper);
+  box-shadow:-10px 0 40px rgba(0,0,0,.3);z-index:60;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .22s cubic-bezier(.3,.8,.4,1);
+}
+.drawer[data-open="true"]{transform:translateX(0)}
+.drawer header{
+  display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--rule);
+}
+.drawer header h3{margin:0;font-size:15px}
+.drawer .list{flex:1;overflow-y:auto;padding:10px 16px 24px}
+.scrim{position:fixed;inset:0;background:rgba(20,22,28,.45);z-index:55;display:none}
+.scrim[data-open="true"]{display:block}
+
+.doc-card{
+  border:1px solid var(--rule);border-radius:6px;background:#fff;padding:10px 12px;margin-bottom:8px;
+}
+.doc-card .t{display:flex;gap:8px;align-items:baseline}
+.doc-card .num{font-weight:600}
+.doc-card .amt{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.doc-card .s{font-size:12px;color:var(--ink-faint);margin-top:2px}
+.doc-card .acts{display:flex;gap:6px;margin-top:8px}
+.pill{font-size:10.5px;padding:1px 7px;border-radius:10px;border:1px solid}
+.pill.draft{color:var(--ink-faint);border-color:var(--rule)}
+.pill.sent{color:var(--accent);border-color:#BFCDE8;background:var(--accent-soft)}
+.pill.paid{color:var(--ok);border-color:#BFD8CB;background:#EAF3EE}
+.pill.overdue{color:var(--stamp);border-color:#E7C9C2;background:#FBEFEC}
+
+.empty{text-align:center;color:var(--ink-faint);padding:44px 18px;font-size:13px;line-height:1.6}
+
+/* toast */
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:var(--ink);color:#F3F1EC;padding:9px 16px;border-radius:7px;font-size:13px;
+  z-index:80;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;
+}
+.toast[data-show="true"]{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* mobile */
+.mobile-tabs{display:none}
+@media (max-width:900px){
+  .workspace{display:block;height:calc(100% - 52px);overflow-y:auto}
+  .panel{width:100%;border-right:0;overflow:visible}
+  .stage{padding:14px 10px 70px}
+  .sheet{padding:12mm 10mm;min-height:0}
+  body[data-view="preview"] .panel{display:none}
+  body[data-view="edit"] .stage{display:none}
+  .mobile-tabs{display:flex}
+  .brand small{display:none}
+  .bar .seg:not(.mobile-tabs){display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important;animation:none !important}
+}
+
+/* ---------- print ---------- */
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff}
+  .bar,.panel,.drawer,.scrim,.toast{display:none !important}
+  .workspace{display:block;height:auto;overflow:visible}
+  .stage{padding:0;background:#fff;overflow:visible}
+  .sheet-wrap{max-width:none}
+  .sheet{box-shadow:none;width:210mm;min-height:297mm;margin:0 auto}
+  .doc-foot{position:fixed}
+}
+</style>
+</head>
+<body data-view="edit">
+
+<div class="bar">
+  <div class="brand"><span class="mark">IS</span>Invoice Studio <small>v1.0</small></div>
+
+  <div class="seg" role="group" aria-label="Document type">
+    <button data-doctype="invoice" aria-pressed="true">Invoice</button>
+    <button data-doctype="quote" aria-pressed="false">Quote</button>
+    <button data-doctype="receipt" aria-pressed="false">Receipt</button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="seg mobile-tabs" role="group" aria-label="View">
+    <button data-view="edit" aria-pressed="true">Edit</button>
+    <button data-view="preview" aria-pressed="false">Preview</button>
+  </div>
+
+  <button class="tbtn" id="btn-new">New</button>
+  <button class="tbtn" id="btn-open">Saved</button>
+  <button class="tbtn" id="btn-save">Save</button>
+  <button class="tbtn solid" id="btn-print">Print / PDF</button>
+</div>
+
+<div class="workspace">
+  <aside class="panel">
+
+    <details class="sec" open>
+      <summary>Document <span class="hint" id="hint-doc"></span></summary>
+      <div class="body">
+        <div class="row">
+          <label class="f"><span>Type</span>
+            <select class="in" data-bind="meta.docType">
+              <option value="invoice">Invoice</option>
+              <option value="quote">Quote</option>
+              <option value="receipt">Receipt</option>
+            </select>
+          </label>
+          <label class="f"><span>Number</span><input class="in" data-bind="meta.number"></label>
+          <label class="f"><span>Status</span>
+            <select class="in" data-bind="meta.status">
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="paid">Paid</option>
+              <option value="overdue">Overdue</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="f"><span>Issue date</span><input type="date" class="in" data-bind="meta.issueDate"></label>
+          <label class="f"><span>Due date</span><input type="date" class="in" data-bind="meta.dueDate"></label>
+        </div>
+        <div class="row">
+          <label class="f"><span>Reference / PO</span><input class="in" data-bind="meta.reference" placeholder="optional"></label>
+          <label class="f"><span>Currency</span><select class="in" id="sel-currency" data-bind="meta.currency"></select></label>
+        </div>
+        <label class="f"><span>Document language</span>
+          <select class="in" id="sel-lang" data-bind="meta.lang"></select>
+        </label>
+        <p class="note">Labels on the document switch language. Your own text stays exactly as you typed it.</p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Your business <span class="hint">saved for next time</span></summary>
+      <div class="body">
+        <div class="logo-drop" id="logo-drop">
+          <div id="logo-preview"></div>
+          <button class="mini" id="btn-logo">Add logo</button>
+          <button class="mini danger" id="btn-logo-clear" hidden>Remove</button>
+          <input type="file" id="logo-input" accept="image/*" hidden>
+          <p class="note">PNG or SVG, stored on this device only.</p>
+        </div>
+        <label class="f"><span>Business name</span><input class="in" data-bind="from.name"></label>
+        <label class="f"><span>Address</span><textarea class="in" data-bind="from.address"></textarea></label>
+        <div class="row">
+          <label class="f"><span>Email</span><input class="in" data-bind="from.email"></label>
+          <label class="f"><span>Phone</span><input class="in" data-bind="from.phone"></label>
+        </div>
+        <div class="row">
+          <label class="f"><span>Website</span><input class="in" data-bind="from.website"></label>
+          <label class="f"><span>Tax / VAT number</span><input class="in" data-bind="from.taxId"></label>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>Client <span class="hint" id="hint-clients"></span></summary>
+      <div class="body">
+        <div class="chips" id="client-chips"></div>
+        <label class="f"><span>Client name</span><input class="in" data-bind="to.name"></label>
+        <label class="f"><span>Address</span><textarea class="in" data-bind="to.address"></textarea></label>
+        <div class="row">
+          <label class="f"><span>Email</span><input class="in" data-bind="to.email"></label>
+          <label class="f"><span>Tax / VAT number</span><input class="in" data-bind="to.taxId"></label>
+        </div>
+        <button class="mini" id="btn-save-client">Save this client</button>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>Line items <span class="hint" id="hint-items"></span></summary>
+      <div class="body">
+        <div id="items"></div>
+        <button class="mini" id="btn-add-item">Add line</button>
+        <p class="note">Drag the handle to reorder. Rate can be negative for a credit line.</p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Tax, discount &amp; shipping</summary>
+      <div class="body">
+        <label class="f"><span>Tax applies</span>
+          <select class="in" data-bind="calc.taxMode">
+            <option value="none">No tax</option>
+            <option value="single">One rate on everything</option>
+            <option value="perItem">Per line item</option>
+          </select>
+        </label>
+        <div class="row">
+          <label class="f"><span>Tax label</span><input class="in" data-bind="calc.taxLabel" placeholder="VAT"></label>
+          <label class="f"><span>Rate %</span><input type="number" step="0.01" class="in" data-bind="calc.taxRate"></label>
+        </div>
+        <label class="f"><span>Tax is included in prices</span>
+          <select class="in" data-bind="calc.taxInclusive">
+            <option value="no">No — add on top</option>
+            <option value="yes">Yes — prices already include it</option>
+          </select>
+        </label>
+        <div class="row">
+          <label class="f"><span>Discount</span>
+            <select class="in" data-bind="calc.discountType">
+              <option value="percent">Percent</option>
+              <option value="fixed">Fixed amount</option>
+            </select>
+          </label>
+          <label class="f"><span>Value</span><input type="number" step="0.01" class="in" data-bind="calc.discountValue"></label>
+        </div>
+        <div class="row">
+          <label class="f"><span>Shipping / fees</span><input type="number" step="0.01" class="in" data-bind="calc.shipping"></label>
+          <label class="f"><span>Amount already paid</span><input type="number" step="0.01" class="in" data-bind="calc.paid"></label>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Payment details</summary>
+      <div class="body">
+        <label class="f"><span>Bank / transfer instructions</span>
+          <textarea class="in" data-bind="pay.bank" placeholder="Bank name&#10;IBAN&#10;SWIFT / BIC"></textarea>
+        </label>
+        <label class="f"><span>Crypto wallets</span></label>
+        <div id="wallets"></div>
+        <button class="mini" id="btn-add-wallet">Add wallet</button>
+        <p class="note">Wallet addresses print as selectable text so the client can copy them from a PDF.</p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Notes &amp; terms</summary>
+      <div class="body">
+        <label class="f"><span>Notes to the client</span><textarea class="in" data-bind="notes"></textarea></label>
+        <label class="f"><span>Terms</span><textarea class="in" data-bind="terms"></textarea></label>
+        <label class="f"><span>Footer line</span><input class="in" data-bind="footer"></label>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Appearance</summary>
+      <div class="body">
+        <label class="f"><span>Template</span></label>
+        <div class="chips" id="tpl-chips">
+          <button class="chip" data-tpl="classic">Classic</button>
+          <button class="chip" data-tpl="modern">Modern</button>
+          <button class="chip" data-tpl="compact">Compact</button>
+          <button class="chip" data-tpl="typed">Typed</button>
+        </div>
+        <label class="f"><span>Accent colour</span></label>
+        <div class="swatches" id="swatches"></div>
+        <label class="f" style="margin-top:12px"><span>Show paid stamp when status is Paid</span>
+          <select class="in" data-bind="style.stamp"><option value="yes">Yes</option><option value="no">No</option></select>
+        </label>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Backup</summary>
+      <div class="body">
+        <p class="note" style="margin-top:0">Everything lives in this browser. Export a backup file before clearing your browser data or moving to another computer.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="mini" id="btn-export">Export backup</button>
+          <button class="mini" id="btn-import">Import backup</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="mini" id="btn-csv">Export documents as CSV</button>
+        </div>
+        <input type="file" id="import-input" accept="application/json" hidden>
+      </div>
+    </details>
+
+  </aside>
+
+  <section class="stage">
+    <div class="sheet-wrap">
+      <div class="sheet" id="sheet" data-tpl="classic"></div>
+    </div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Saved documents">
+  <header>
+    <h3>Saved documents</h3>
+    <div class="spacer" style="flex:1"></div>
+    <button class="mini" id="btn-close-drawer">Close</button>
+  </header>
+  <div class="list" id="doc-list"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. Reference data
+   ============================================================ */
+
+const CURRENCIES = [
+  ["USD","$"],["EUR","€"],["GBP","£"],["JPY","¥"],["CNY","¥"],["INR","₹"],["AUD","A$"],
+  ["CAD","C$"],["CHF","CHF"],["SEK","kr"],["NOK","kr"],["DKK","kr"],["PLN","zł"],["CZK","Kč"],
+  ["HUF","Ft"],["RON","lei"],["TRY","₺"],["RUB","₽"],["UAH","₴"],["AED","AED"],["SAR","SAR"],
+  ["QAR","QAR"],["KWD","KWD"],["BHD","BHD"],["OMR","OMR"],["ILS","₪"],["EGP","EGP"],["ZAR","R"],
+  ["NGN","₦"],["KES","KSh"],["GHS","₵"],["MAD","MAD"],["TND","TND"],["BRL","R$"],["MXN","MX$"],
+  ["ARS","AR$"],["CLP","CLP"],["COP","COP"],["PEN","S/"],["UYU","$U"],["SGD","S$"],["HKD","HK$"],
+  ["TWD","NT$"],["KRW","₩"],["THB","฿"],["MYR","RM"],["IDR","Rp"],["PHP","₱"],["VND","₫"],
+  ["PKR","₨"],["BDT","৳"],["LKR","Rs"],["NPR","Rs"],["NZD","NZ$"],["IRR","IRR"],["IQD","IQD"],
+  ["AZN","₼"],["KZT","₸"],["GEL","₾"],["RSD","RSD"],["BGN","лв"],["HRK","kn"],["ISK","kr"],
+  ["BTC","₿"],["ETH","Ξ"],["USDT","USDT"],["USDC","USDC"],["SOL","SOL"],["XMR","XMR"]
+];
+const CRYPTO = new Set(["BTC","ETH","USDT","USDC","SOL","XMR"]);
+
+const LANGS = {
+  en:{n:"English",rtl:false,t:{invoice:"Invoice",quote:"Quote",receipt:"Receipt",billTo:"Bill to",from:"From",number:"Number",issued:"Issued",due:"Due",ref:"Reference",desc:"Description",qty:"Qty",rate:"Rate",tax:"Tax",amount:"Amount",subtotal:"Subtotal",discount:"Discount",shipping:"Shipping",total:"Total",paid:"Paid",balance:"Amount due",notes:"Notes",terms:"Terms",payment:"Payment",paidStamp:"PAID",validUntil:"Valid until",taxId:"Tax ID"}},
+  es:{n:"Español",rtl:false,t:{invoice:"Factura",quote:"Presupuesto",receipt:"Recibo",billTo:"Facturar a",from:"De",number:"Número",issued:"Emitida",due:"Vencimiento",ref:"Referencia",desc:"Descripción",qty:"Cant.",rate:"Precio",tax:"Imp.",amount:"Importe",subtotal:"Subtotal",discount:"Descuento",shipping:"Envío",total:"Total",paid:"Pagado",balance:"Importe a pagar",notes:"Notas",terms:"Condiciones",payment:"Pago",paidStamp:"PAGADO",validUntil:"Válido hasta",taxId:"NIF"}},
+  fr:{n:"Français",rtl:false,t:{invoice:"Facture",quote:"Devis",receipt:"Reçu",billTo:"Facturé à",from:"De",number:"Numéro",issued:"Émise le",due:"Échéance",ref:"Référence",desc:"Description",qty:"Qté",rate:"P.U.",tax:"TVA",amount:"Montant",subtotal:"Sous-total",discount:"Remise",shipping:"Livraison",total:"Total",paid:"Payé",balance:"Montant dû",notes:"Notes",terms:"Conditions",payment:"Paiement",paidStamp:"PAYÉ",validUntil:"Valable jusqu'au",taxId:"N° TVA"}},
+  de:{n:"Deutsch",rtl:false,t:{invoice:"Rechnung",quote:"Angebot",receipt:"Quittung",billTo:"Rechnung an",from:"Von",number:"Nummer",issued:"Datum",due:"Fällig",ref:"Referenz",desc:"Beschreibung",qty:"Menge",rate:"Preis",tax:"USt.",amount:"Betrag",subtotal:"Zwischensumme",discount:"Rabatt",shipping:"Versand",total:"Gesamt",paid:"Bezahlt",balance:"Zu zahlen",notes:"Anmerkungen",terms:"Bedingungen",payment:"Zahlung",paidStamp:"BEZAHLT",validUntil:"Gültig bis",taxId:"USt-IdNr."}},
+  pt:{n:"Português",rtl:false,t:{invoice:"Fatura",quote:"Orçamento",receipt:"Recibo",billTo:"Faturar a",from:"De",number:"Número",issued:"Emissão",due:"Vencimento",ref:"Referência",desc:"Descrição",qty:"Qtd",rate:"Preço",tax:"Imp.",amount:"Valor",subtotal:"Subtotal",discount:"Desconto",shipping:"Envio",total:"Total",paid:"Pago",balance:"Valor a pagar",notes:"Notas",terms:"Condições",payment:"Pagamento",paidStamp:"PAGO",validUntil:"Válido até",taxId:"NIF"}},
+  ar:{n:"العربية",rtl:true,t:{invoice:"فاتورة",quote:"عرض سعر",receipt:"إيصال",billTo:"إلى",from:"من",number:"الرقم",issued:"تاريخ الإصدار",due:"تاريخ الاستحقاق",ref:"المرجع",desc:"الوصف",qty:"الكمية",rate:"السعر",tax:"الضريبة",amount:"المبلغ",subtotal:"المجموع الفرعي",discount:"الخصم",shipping:"الشحن",total:"الإجمالي",paid:"المدفوع",balance:"المبلغ المستحق",notes:"ملاحظات",terms:"الشروط",payment:"الدفع",paidStamp:"مدفوعة",validUntil:"صالح حتى",taxId:"الرقم الضريبي"}},
+  fa:{n:"فارسی",rtl:true,t:{invoice:"فاکتور",quote:"پیش‌فاکتور",receipt:"رسید",billTo:"صورتحساب برای",from:"از",number:"شماره",issued:"تاریخ صدور",due:"سررسید",ref:"مرجع",desc:"شرح",qty:"تعداد",rate:"قیمت واحد",tax:"مالیات",amount:"مبلغ",subtotal:"جمع جزء",discount:"تخفیف",shipping:"هزینه ارسال",total:"جمع کل",paid:"پرداخت‌شده",balance:"مبلغ قابل پرداخت",notes:"یادداشت",terms:"شرایط",payment:"پرداخت",paidStamp:"پرداخت شد",validUntil:"معتبر تا",taxId:"شناسه مالیاتی"}}
+};
+
+const ACCENTS = ["#2B4C9B","#1F6F5C","#8A3A62","#B3341F","#5B4A9E","#B0791B","#1A1C23","#2F6B8F"];
+
+/* ============================================================
+   2. Storage
+   ============================================================ */
+
+const KEY = "invoice-studio-v1";
+const store = {
+  read(){
+    try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }
+    catch(e){ return {}; }
+  },
+  write(data){
+    try{ localStorage.setItem(KEY, JSON.stringify(data)); return true; }
+    catch(e){ toast("Storage is full or blocked. Export a backup to be safe."); return false; }
+  }
+};
+let db = Object.assign({ profile:null, clients:[], docs:[], counter:1, style:null }, store.read());
+const persist = () => store.write(db);
+
+/* ============================================================
+   3. State
+   ============================================================ */
+
+const today = () => new Date().toISOString().slice(0,10);
+const addDays = (iso,n) => { const d=new Date(iso); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const uid = () => Math.random().toString(36).slice(2,9);
+
+function blankState(){
+  const year = new Date().getFullYear();
+  const num = String(db.counter).padStart(4,"0");
+  return {
+    id:uid(),
+    meta:{docType:"invoice",number:`INV-${year}-${num}`,issueDate:today(),dueDate:addDays(today(),14),
+          reference:"",status:"draft",currency:"USD",lang:"en"},
+    from:Object.assign({name:"",address:"",email:"",phone:"",website:"",taxId:"",logo:""}, db.profile||{}),
+    to:{name:"",address:"",email:"",taxId:""},
+    items:[{id:uid(),desc:"",qty:1,rate:0,tax:0}],
+    calc:{taxMode:"none",taxLabel:"VAT",taxRate:0,taxInclusive:"no",discountType:"percent",discountValue:0,shipping:0,paid:0},
+    pay:{bank:"",wallets:[]},
+    notes:"",terms:"",footer:"",
+    style:Object.assign({tpl:"classic",accent:"#2B4C9B",stamp:"yes"}, db.style||{})
+  };
+}
+let S = blankState();
+let dirty = false;
+
+const get = path => path.split(".").reduce((o,k)=> (o==null?o:o[k]), S);
+const set = (path,val) => {
+  const keys = path.split("."), last = keys.pop();
+  keys.reduce((o,k)=>o[k], S)[last] = val;
+};
+
+/* ============================================================
+   4. Money
+   ============================================================ */
+
+function money(n, code){
+  code = code || S.meta.currency;
+  const v = Number(n)||0;
+  if(CRYPTO.has(code)){
+    const dp = (code==="BTC"||code==="ETH"||code==="XMR") ? 8 : 2;
+    return `${v.toFixed(dp).replace(/(\.\d*?[1-9])0+$/,"$1").replace(/\.0+$/,"")} ${code}`;
+  }
+  try{
+    return new Intl.NumberFormat(undefined,{style:"currency",currency:code}).format(v);
+  }catch(e){
+    const sym = (CURRENCIES.find(c=>c[0]===code)||[])[1] || code;
+    return `${sym}${v.toFixed(2)}`;
+  }
+}
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+
+function totals(){
+  const c = S.calc;
+  let sub = 0, taxBase = 0;
+  const lines = S.items.map(it=>{
+    const amt = num(it.qty) * num(it.rate);
+    sub += amt;
+    return {...it, amount:amt};
+  });
+
+  let discount = 0;
+  if(num(c.discountValue) > 0){
+    discount = c.discountType === "percent" ? sub * num(c.discountValue)/100 : num(c.discountValue);
+  }
+  const afterDiscount = sub - discount;
+  const ratio = sub !== 0 ? afterDiscount/sub : 1;
+
+  let tax = 0;
+  if(c.taxMode === "single"){
+    taxBase = afterDiscount;
+    tax = c.taxInclusive === "yes"
+      ? taxBase - taxBase/(1+num(c.taxRate)/100)
+      : taxBase * num(c.taxRate)/100;
+  } else if(c.taxMode === "perItem"){
+    lines.forEach(l=>{
+      const base = l.amount * ratio;
+      tax += c.taxInclusive === "yes"
+        ? base - base/(1+num(l.tax)/100)
+        : base * num(l.tax)/100;
+    });
+  }
+
+  const shipping = num(c.shipping);
+  const total = c.taxInclusive === "yes"
+    ? afterDiscount + shipping
+    : afterDiscount + tax + shipping;
+  const paid = num(c.paid);
+  return {lines, sub, discount, tax, shipping, total, paid, balance: total - paid};
+}
+
+/* ============================================================
+   5. Rendering the document
+   ============================================================ */
+
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const sheet = document.getElementById("sheet");
+
+function fmtDate(iso, lang){
+  if(!iso) return "";
+  try{
+    const loc = lang === "fa" ? "fa-IR" : lang;
+    return new Date(iso+"T00:00:00").toLocaleDateString(loc,{year:"numeric",month:"short",day:"numeric"});
+  }catch(e){ return iso; }
+}
+
+function render(){
+  const L = LANGS[S.meta.lang] || LANGS.en;
+  const t = L.t;
+  const T = totals();
+  const isQuote = S.meta.docType === "quote";
+  const title = t[S.meta.docType] || t.invoice;
+
+  sheet.setAttribute("dir", L.rtl ? "rtl" : "ltr");
+  sheet.setAttribute("data-tpl", S.style.tpl);
+  sheet.style.setProperty("--doc-accent", S.style.accent);
+
+  const metaRows = [
+    [t.number, S.meta.number],
+    [t.issued, fmtDate(S.meta.issueDate, S.meta.lang)],
+    [isQuote ? t.validUntil : t.due, fmtDate(S.meta.dueDate, S.meta.lang)],
+    [t.ref, S.meta.reference]
+  ].filter(r=>r[1]);
+
+  const issuerLines = [S.from.address, S.from.email, S.from.phone, S.from.website,
+    S.from.taxId ? `${t.taxId}: ${S.from.taxId}` : ""].filter(Boolean);
+  const clientLines = [S.to.address, S.to.email,
+    S.to.taxId ? `${t.taxId}: ${S.to.taxId}` : ""].filter(Boolean);
+
+  const perItemTax = S.calc.taxMode === "perItem";
+
+  const rows = T.lines.map(l=>`
+    <tr>
+      <td><div class="li-desc">${esc(l.desc) || "&nbsp;"}</div></td>
+      <td class="n">${esc(l.qty)}</td>
+      <td class="n">${money(l.rate)}</td>
+      ${perItemTax ? `<td class="n">${num(l.tax)}%</td>` : ""}
+      <td class="n">${money(l.amount)}</td>
+    </tr>`).join("");
+
+  const totalRows = [];
+  if(T.discount || T.tax || T.shipping || T.paid){
+    totalRows.push(`<tr><td class="k">${t.subtotal}</td><td class="v">${money(T.sub)}</td></tr>`);
+  }
+  if(T.discount) totalRows.push(`<tr><td class="k">${t.discount}</td><td class="v">−${money(T.discount)}</td></tr>`);
+  if(T.tax){
+    const label = (S.calc.taxLabel || t.tax) + (S.calc.taxMode==="single" ? ` ${num(S.calc.taxRate)}%` : "")
+      + (S.calc.taxInclusive==="yes" ? " (incl.)" : "");
+    totalRows.push(`<tr><td class="k">${esc(label)}</td><td class="v">${money(T.tax)}</td></tr>`);
+  }
+  if(T.shipping) totalRows.push(`<tr><td class="k">${t.shipping}</td><td class="v">${money(T.shipping)}</td></tr>`);
+  totalRows.push(`<tr class="grand"><td class="k">${t.total}</td><td class="v">${money(T.total)}</td></tr>`);
+  if(T.paid){
+    totalRows.push(`<tr class="paidline"><td class="k">${t.paid}</td><td class="v">−${money(T.paid)}</td></tr>`);
+    totalRows.push(`<tr class="grand"><td class="k">${t.balance}</td><td class="v">${money(T.balance)}</td></tr>`);
+  }
+
+  const walletHTML = (S.pay.wallets||[]).filter(w=>w.address).map(w=>
+    `<div class="crypto-row"><b>${esc(w.coin||"Wallet")}</b><code>${esc(w.address)}</code></div>`).join("");
+  const payHTML = [S.pay.bank ? `<p>${esc(S.pay.bank)}</p>` : "", walletHTML].filter(Boolean).join("");
+
+  const blocks = [
+    S.notes ? `<div class="block"><h4>${t.notes}</h4><p>${esc(S.notes)}</p></div>` : "",
+    S.terms ? `<div class="block"><h4>${t.terms}</h4><p>${esc(S.terms)}</p></div>` : "",
+    payHTML ? `<div class="block"><h4>${t.payment}</h4>${payHTML}</div>` : ""
+  ].filter(Boolean).join("");
+
+  sheet.innerHTML = `
+    <div class="doc-head">
+      <div>
+        ${S.from.logo ? `<div class="doc-logo"><img src="${S.from.logo}" alt=""></div>` : ""}
+        <h1 class="doc-title" style="margin-top:${S.from.logo?"12px":"0"}">${title}</h1>
+        <div class="doc-meta">
+          ${metaRows.map(r=>`<div><b>${r[0]}</b><span>${esc(r[1])}</span></div>`).join("")}
+        </div>
+      </div>
+      <div class="issuer">
+        <div class="nm">${esc(S.from.name)}</div>
+        ${issuerLines.map(l=>`<div class="ln">${esc(l).replace(/\n/g,"<br>")}</div>`).join("")}
+      </div>
+    </div>
+    <div class="accent-rule"></div>
+
+    <div class="parties">
+      <div class="party">
+        <h4>${t.billTo}</h4>
+        <div class="nm">${esc(S.to.name) || "—"}</div>
+        ${clientLines.map(l=>`<div class="ln">${esc(l)}</div>`).join("")}
+      </div>
+    </div>
+
+    <table class="lines">
+      <thead><tr>
+        <th>${t.desc}</th><th class="n">${t.qty}</th><th class="n">${t.rate}</th>
+        ${perItemTax ? `<th class="n">${t.tax}</th>` : ""}<th class="n">${t.amount}</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="totals"><table>${totalRows.join("")}</table></div>
+
+    ${blocks ? `<div class="blocks">${blocks}</div>` : ""}
+
+    ${(S.meta.status==="paid" && S.style.stamp==="yes") ? `<div class="stamp">${t.paidStamp}</div>` : ""}
+
+    <div class="doc-foot">
+      <span>${esc(S.footer || S.from.name)}</span>
+      <span>${esc(S.meta.number)}</span>
+    </div>`;
+
+  document.getElementById("hint-doc").textContent = money(T.total);
+  document.getElementById("hint-items").textContent = S.items.length + (S.items.length===1?" line":" lines");
+  document.title = `${S.meta.number} — ${S.to.name || "Invoice Studio"}`;
+}
+
+/* ============================================================
+   6. Panel wiring
+   ============================================================ */
+
+function fillSelects(){
+  const cur = document.getElementById("sel-currency");
+  cur.innerHTML = CURRENCIES.map(([c,s])=>
+    `<option value="${c}">${c}${CRYPTO.has(c)?" — crypto":` — ${s}`}</option>`).join("");
+  const lang = document.getElementById("sel-lang");
+  lang.innerHTML = Object.entries(LANGS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("");
+  document.getElementById("swatches").innerHTML = ACCENTS.map(c=>
+    `<button class="sw" data-accent="${c}" style="background:${c}" aria-label="${c}"></button>`).join("");
+}
+
+function syncInputs(){
+  document.querySelectorAll("[data-bind]").forEach(el=>{
+    const v = get(el.dataset.bind);
+    el.value = v == null ? "" : v;
+  });
+  document.querySelectorAll("#tpl-chips .chip").forEach(b=>
+    b.setAttribute("aria-pressed", String(b.dataset.tpl === S.style.tpl)));
+  document.querySelectorAll("#swatches .sw").forEach(b=>
+    b.setAttribute("aria-pressed", String(b.dataset.accent === S.style.accent)));
+  document.querySelectorAll(".seg [data-doctype]").forEach(b=>
+    b.setAttribute("aria-pressed", String(b.dataset.doctype === S.meta.docType)));
+  renderLogo();
+}
+
+document.addEventListener("input", e=>{
+  const el = e.target.closest("[data-bind]");
+  if(!el) return;
+  const path = el.dataset.bind;
+  const isNum = el.type === "number";
+  set(path, isNum ? (el.value === "" ? 0 : parseFloat(el.value)) : el.value);
+  dirty = true;
+  if(path === "meta.docType"){
+    const prefix = {invoice:"INV",quote:"QTE",receipt:"RCP"}[S.meta.docType];
+    S.meta.number = S.meta.number.replace(/^[A-Z]{3}/, prefix);
+    syncInputs();
+  }
+  if(path.startsWith("from.")) saveProfile();
+  if(path.startsWith("style.")) { db.style = {...S.style}; persist(); }
+  render();
+});
+
+function saveProfile(){ db.profile = {...S.from}; persist(); }
+
+/* ---- items ---- */
+const itemsEl = document.getElementById("items");
+
+function renderItems(){
+  const perItemTax = S.calc.taxMode === "perItem";
+  itemsEl.innerHTML = S.items.map((it,i)=>`
+    <div class="item" draggable="true" data-i="${i}">
+      <div class="top">
+        <button class="grab" title="Drag to reorder" aria-label="Reorder line ${i+1}">⠿</button>
+        <textarea class="in" data-item="desc" data-i="${i}" placeholder="What are you charging for?">${esc(it.desc)}</textarea>
+        <button class="x" data-del="${i}" aria-label="Remove line ${i+1}">×</button>
+      </div>
+      <div class="nums">
+        <label class="f" style="max-width:68px"><span>Qty</span>
+          <input type="number" step="any" class="in" data-item="qty" data-i="${i}" value="${it.qty}"></label>
+        <label class="f" style="max-width:98px"><span>Rate</span>
+          <input type="number" step="any" class="in" data-item="rate" data-i="${i}" value="${it.rate}"></label>
+        ${perItemTax ? `<label class="f" style="max-width:68px"><span>Tax %</span>
+          <input type="number" step="any" class="in" data-item="tax" data-i="${i}" value="${it.tax}"></label>` : ""}
+        <span class="lineamt">${money(num(it.qty)*num(it.rate))}</span>
+      </div>
+    </div>`).join("");
+}
+
+itemsEl.addEventListener("input", e=>{
+  const el = e.target.closest("[data-item]");
+  if(!el) return;
+  const i = +el.dataset.i, k = el.dataset.item;
+  S.items[i][k] = el.type === "number" ? (el.value===""?0:parseFloat(el.value)) : el.value;
+  dirty = true;
+  if(k !== "desc") renderItems();
+  render();
+});
+itemsEl.addEventListener("click", e=>{
+  const del = e.target.closest("[data-del]");
+  if(!del) return;
+  S.items.splice(+del.dataset.del,1);
+  if(!S.items.length) S.items.push({id:uid(),desc:"",qty:1,rate:0,tax:0});
+  renderItems(); render();
+});
+document.getElementById("btn-add-item").onclick = ()=>{
+  S.items.push({id:uid(),desc:"",qty:1,rate:0,tax:0});
+  renderItems(); render();
+  const last = itemsEl.querySelector(".item:last-child textarea");
+  if(last) last.focus();
+};
+
+/* drag to reorder */
+let dragFrom = null;
+itemsEl.addEventListener("dragstart", e=>{
+  const row = e.target.closest(".item"); if(!row) return;
+  dragFrom = +row.dataset.i; row.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+});
+itemsEl.addEventListener("dragover", e=>{
+  e.preventDefault();
+  const row = e.target.closest(".item"); if(!row) return;
+  itemsEl.querySelectorAll(".item").forEach(r=>r.classList.remove("over"));
+  row.classList.add("over");
+});
+itemsEl.addEventListener("drop", e=>{
+  e.preventDefault();
+  const row = e.target.closest(".item");
+  if(row && dragFrom !== null){
+    const to = +row.dataset.i;
+    const [moved] = S.items.splice(dragFrom,1);
+    S.items.splice(to,0,moved);
+  }
+  dragFrom = null; renderItems(); render();
+});
+itemsEl.addEventListener("dragend", ()=>{
+  dragFrom = null;
+  itemsEl.querySelectorAll(".item").forEach(r=>r.classList.remove("over","dragging"));
+});
+
+/* ---- wallets ---- */
+const walletsEl = document.getElementById("wallets");
+function renderWallets(){
+  walletsEl.innerHTML = (S.pay.wallets||[]).map((w,i)=>`
+    <div class="row" style="margin-bottom:8px">
+      <input class="in" style="max-width:104px" data-wal="coin" data-i="${i}" value="${esc(w.coin)}" placeholder="BTC">
+      <input class="in" data-wal="address" data-i="${i}" value="${esc(w.address)}" placeholder="Wallet address">
+      <button class="mini danger" data-walx="${i}" style="flex:none">×</button>
+    </div>`).join("");
+}
+walletsEl.addEventListener("input", e=>{
+  const el = e.target.closest("[data-wal]"); if(!el) return;
+  S.pay.wallets[+el.dataset.i][el.dataset.wal] = el.value;
+  render();
+});
+walletsEl.addEventListener("click", e=>{
+  const x = e.target.closest("[data-walx]"); if(!x) return;
+  S.pay.wallets.splice(+x.dataset.walx,1); renderWallets(); render();
+});
+document.getElementById("btn-add-wallet").onclick = ()=>{
+  S.pay.wallets = S.pay.wallets || [];
+  S.pay.wallets.push({coin:"",address:""});
+  renderWallets();
+};
+
+/* ---- logo ---- */
+function renderLogo(){
+  const prev = document.getElementById("logo-preview");
+  const clear = document.getElementById("btn-logo-clear");
+  prev.innerHTML = S.from.logo ? `<img src="${S.from.logo}" alt="Your logo">` : "";
+  clear.hidden = !S.from.logo;
+}
+document.getElementById("btn-logo").onclick = ()=> document.getElementById("logo-input").click();
+document.getElementById("logo-input").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  if(f.size > 900*1024){ toast("Logo is over 900 KB. Use a smaller file."); return; }
+  const r = new FileReader();
+  r.onload = ()=>{ S.from.logo = r.result; saveProfile(); renderLogo(); render(); };
+  r.readAsDataURL(f);
+};
+document.getElementById("btn-logo-clear").onclick = ()=>{
+  S.from.logo = ""; saveProfile(); renderLogo(); render();
+};
+
+/* ---- template & accent ---- */
+document.getElementById("tpl-chips").onclick = e=>{
+  const b = e.target.closest("[data-tpl]"); if(!b) return;
+  S.style.tpl = b.dataset.tpl; db.style = {...S.style}; persist(); syncInputs(); render();
+};
+document.getElementById("swatches").onclick = e=>{
+  const b = e.target.closest("[data-accent]"); if(!b) return;
+  S.style.accent = b.dataset.accent; db.style = {...S.style}; persist(); syncInputs(); render();
+};
+
+/* ---- doc type & mobile view ---- */
+document.querySelector(".bar .seg").onclick = e=>{
+  const b = e.target.closest("[data-doctype]"); if(!b) return;
+  S.meta.docType = b.dataset.doctype;
+  const prefix = {invoice:"INV",quote:"QTE",receipt:"RCP"}[S.meta.docType];
+  S.meta.number = S.meta.number.replace(/^[A-Z]{3}/, prefix);
+  syncInputs(); render();
+};
+document.querySelector(".mobile-tabs").onclick = e=>{
+  const b = e.target.closest("[data-view]"); if(!b) return;
+  document.body.dataset.view = b.dataset.view;
+  document.querySelectorAll(".mobile-tabs button").forEach(x=>
+    x.setAttribute("aria-pressed", String(x === b)));
+};
+
+/* ---- clients ---- */
+function renderClients(){
+  const el = document.getElementById("client-chips");
+  el.innerHTML = (db.clients||[]).map((c,i)=>
+    `<button class="chip" data-client="${i}">${esc(c.name||"Unnamed")}</button>`).join("");
+  document.getElementById("hint-clients").textContent =
+    db.clients.length ? db.clients.length + " saved" : "";
+}
+document.getElementById("client-chips").onclick = e=>{
+  const b = e.target.closest("[data-client]"); if(!b) return;
+  S.to = {...db.clients[+b.dataset.client]};
+  syncInputs(); render(); toast("Client filled in");
+};
+document.getElementById("btn-save-client").onclick = ()=>{
+  if(!S.to.name){ toast("Add a client name first"); return; }
+  const i = db.clients.findIndex(c=>c.name === S.to.name);
+  if(i >= 0) db.clients[i] = {...S.to}; else db.clients.push({...S.to});
+  persist(); renderClients(); toast("Client saved");
+};
+
+/* ============================================================
+   7. Documents: save, open, delete
+   ============================================================ */
+
+function saveDoc(){
+  const T = totals();
+  const snap = JSON.parse(JSON.stringify(S));
+  snap.savedAt = Date.now();
+  snap.total = T.total;
+  const i = db.docs.findIndex(d=>d.id === S.id);
+  if(i >= 0) db.docs[i] = snap;
+  else { db.docs.unshift(snap); db.counter++; }
+  persist(); dirty = false; renderDocs(); toast("Saved");
+}
+document.getElementById("btn-save").onclick = saveDoc;
+
+function renderDocs(){
+  const el = document.getElementById("doc-list");
+  if(!db.docs.length){
+    el.innerHTML = `<div class="empty">Nothing saved yet.<br>Fill in a document and press Save.</div>`;
+    return;
+  }
+  el.innerHTML = db.docs.map(d=>`
+    <div class="doc-card">
+      <div class="t">
+        <span class="num">${esc(d.meta.number)}</span>
+        <span class="pill ${d.meta.status}">${d.meta.status}</span>
+        <span class="amt">${money(d.total, d.meta.currency)}</span>
+      </div>
+      <div class="s">${esc(d.to.name||"No client")} · ${esc(d.meta.issueDate)}</div>
+      <div class="acts">
+        <button class="mini" data-open="${d.id}">Open</button>
+        <button class="mini" data-dup="${d.id}">Duplicate</button>
+        <button class="mini danger" data-rm="${d.id}">Delete</button>
+      </div>
+    </div>`).join("");
+}
+document.getElementById("doc-list").onclick = e=>{
+  const b = e.target.closest("button[data-open],button[data-dup],button[data-rm]");
+  if(!b) return;
+  if(b.dataset.open){
+    S = JSON.parse(JSON.stringify(db.docs.find(d=>d.id === b.dataset.open)));
+    dirty = false; refreshAll(); closeDrawer(); toast("Opened");
+  } else if(b.dataset.dup){
+    const src = db.docs.find(d=>d.id === b.dataset.dup);
+    S = JSON.parse(JSON.stringify(src));
+    S.id = uid();
+    S.meta.number = nextNumber(S.meta.docType);
+    S.meta.issueDate = today();
+    S.meta.dueDate = addDays(today(),14);
+    S.meta.status = "draft";
+    refreshAll(); closeDrawer(); toast("Duplicated as a new draft");
+  } else if(b.dataset.rm){
+    const d = db.docs.find(x=>x.id === b.dataset.rm);
+    if(confirm(`Delete ${d.meta.number}? This cannot be undone.`)){
+      db.docs = db.docs.filter(x=>x.id !== b.dataset.rm);
+      persist(); renderDocs(); toast("Deleted");
+    }
+  }
+};
+function nextNumber(type){
+  const prefix = {invoice:"INV",quote:"QTE",receipt:"RCP"}[type] || "INV";
+  return `${prefix}-${new Date().getFullYear()}-${String(db.counter).padStart(4,"0")}`;
+}
+
+document.getElementById("btn-new").onclick = ()=>{
+  S = blankState();
+  S.meta.number = nextNumber("invoice");
+  dirty = false; refreshAll(); toast("New document");
+};
+
+/* drawer */
+const drawer = document.getElementById("drawer"), scrim = document.getElementById("scrim");
+const openDrawer = ()=>{ renderDocs(); drawer.dataset.open="true"; scrim.dataset.open="true"; };
+const closeDrawer = ()=>{ drawer.dataset.open="false"; scrim.dataset.open="false"; };
+document.getElementById("btn-open").onclick = openDrawer;
+document.getElementById("btn-close-drawer").onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+
+/* ============================================================
+   8. Print, backup, CSV
+   ============================================================ */
+
+document.getElementById("btn-print").onclick = ()=>{ window.print(); };
+
+function download(name, text, type){
+  const blob = new Blob([text], {type:type||"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+
+document.getElementById("btn-export").onclick = ()=>{
+  download(`invoice-studio-backup-${today()}.json`, JSON.stringify(db,null,2));
+  toast("Backup downloaded");
+};
+document.getElementById("btn-import").onclick = ()=> document.getElementById("import-input").click();
+document.getElementById("import-input").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const incoming = JSON.parse(r.result);
+      if(!incoming || typeof incoming !== "object") throw 0;
+      const keep = confirm("Merge with what is already here? Cancel replaces everything instead.");
+      if(keep){
+        const ids = new Set(db.docs.map(d=>d.id));
+        db.docs = db.docs.concat((incoming.docs||[]).filter(d=>!ids.has(d.id)));
+        const names = new Set(db.clients.map(c=>c.name));
+        db.clients = db.clients.concat((incoming.clients||[]).filter(c=>!names.has(c.name)));
+        db.counter = Math.max(db.counter, incoming.counter||1);
+      } else {
+        db = Object.assign({profile:null,clients:[],docs:[],counter:1,style:null}, incoming);
+      }
+      persist(); renderClients(); renderDocs(); toast("Backup imported");
+    }catch(err){ toast("That file is not an Invoice Studio backup."); }
+    e.target.value = "";
+  };
+  r.readAsText(f);
+};
+
+document.getElementById("btn-csv").onclick = ()=>{
+  if(!db.docs.length){ toast("Nothing to export yet"); return; }
+  const q = v => `"${String(v==null?"":v).replace(/"/g,'""')}"`;
+  const head = ["Number","Type","Status","Issue date","Due date","Client","Currency","Total"];
+  const rows = db.docs.map(d=>[d.meta.number,d.meta.docType,d.meta.status,d.meta.issueDate,
+    d.meta.dueDate,d.to.name,d.meta.currency,(d.total||0).toFixed(2)].map(q).join(","));
+  download(`invoice-studio-${today()}.csv`, "\uFEFF"+[head.map(q).join(","), ...rows].join("\r\n"), "text/csv");
+  toast("CSV downloaded");
+};
+
+/* ============================================================
+   9. Misc
+   ============================================================ */
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.dataset.show = "true";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.dataset.show = "false"; }, 2200);
+}
+
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key === "s"){ e.preventDefault(); saveDoc(); }
+  if((e.metaKey||e.ctrlKey) && e.key === "p"){ /* let the browser print */ }
+  if(e.key === "Escape") closeDrawer();
+});
+
+window.addEventListener("beforeunload", e=>{
+  if(dirty){ e.preventDefault(); e.returnValue = ""; }
+});
+
+function refreshAll(){ syncInputs(); renderItems(); renderWallets(); render(); }
+
+function firstRun(){
+  if(db.docs.length || db.profile) return;
+  S.from = {name:"Your business name", address:"Street\nCity, Country",
+            email:"you@example.com", phone:"", website:"", taxId:"", logo:""};
+  S.to = {name:"Client name", address:"Client street\nCity, Country", email:"client@example.com", taxId:""};
+  S.items = [
+    {id:uid(),desc:"Website design — 3 pages\nIncludes two rounds of revisions",qty:1,rate:1200,tax:0},
+    {id:uid(),desc:"Copywriting",qty:4,rate:90,tax:0}
+  ];
+  S.calc.taxMode = "single"; S.calc.taxRate = 20; S.calc.taxLabel = "VAT";
+  S.notes = "Thank you for your business.";
+  S.terms = "Payment due within 14 days.";
+}
+
+fillSelects();
+firstRun();
+refreshAll();
+renderClients();
+renderDocs();
+</script>
+</body>
+</html>
