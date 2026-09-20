@@ -8,5 +8,10 @@
     "name": "Invoice Studio",
     "priceUSD": 70,
     "file": "products/invoice-studio-pro.zip"
+  },
+  "contract-proposal-generator-pro": {
+    "name": "Contract & Proposal Generator Pro",
+    "priceUSD": 50,
+    "file": "products/contract-proposal-generator-pro.zip"
   }
 }
