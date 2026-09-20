@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contract & Proposal Generator Pro</title>
+<meta name="description" content="Create service agreements, proposals, retainers, contractor agreements and NDAs offline, with real drawn signatures, milestone payment schedules, a tamper-evident signing hash, and clean PDF export. No account, no monthly fee.">
+<style>
+  :root{
+    --paper:#FBFAF6; --ink:#1A1C23; --soft:#585C69; --faint:#8D91A0;
+    --rule:#DFDACE; --rule-soft:#EDE9E0; --desk:#63666E;
+    --accent:#2B4C9B; --accent-soft:#E8EDF8; --ok:#2F6B4F; --bad:#B3341F;
+    --field:#fff;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--ink);background:var(--desk)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+
+  .bar{height:52px;background:var(--ink);color:#F3F1EC;display:flex;align-items:center;gap:14px;padding:0 14px;position:sticky;top:0;z-index:40}
+  .brand{font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .brand .mark{width:22px;height:22px;border-radius:3px;background:var(--paper);display:grid;place-items:center;color:var(--ink);font-size:12px;font-weight:800}
+  .brand small{font-weight:400;color:#9A9DA8;font-size:11px;margin-left:2px}
+  .bar .spacer{flex:1}
+  .tbtn{border:1px solid rgba(255,255,255,.18);background:transparent;color:#E8E6E1;padding:6px 12px;border-radius:6px;font-size:13px;white-space:nowrap}
+  .tbtn:hover{background:rgba(255,255,255,.1)}
+  .tbtn.solid{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:600}
+
+  .workspace{display:flex;height:calc(100% - 52px);overflow:hidden}
+  .panel{width:410px;flex:none;background:var(--paper);overflow-y:auto;border-right:1px solid rgba(0,0,0,.2)}
+  .stage{flex:1;overflow-y:auto;padding:26px 20px 80px;background:var(--desk)}
+
+  details.sec{border-bottom:1px solid var(--rule-soft)}
+  details.sec>summary{list-style:none;cursor:pointer;padding:13px 16px;font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary::before{content:"";width:6px;height:6px;border-right:1.5px solid var(--faint);border-bottom:1.5px solid var(--faint);transform:rotate(-45deg);margin-right:2px}
+  details.sec[open]>summary::before{transform:rotate(45deg)}
+  details.sec>summary:hover{background:#F4F1EA}
+  details.sec .body{padding:2px 16px 18px}
+  summary .hint{margin-left:auto;font-weight:400;font-size:11.5px;color:var(--faint)}
+
+  label.f{display:block;margin:0 0 11px}
+  label.f>span{display:block;font-size:12px;color:var(--soft);margin-bottom:4px}
+  .in{width:100%;background:var(--field);border:1px solid var(--rule);border-radius:5px;padding:7px 9px;font-size:13.5px}
+  .in:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+  textarea.in{resize:vertical;min-height:70px;line-height:1.45}
+  .row{display:flex;gap:9px}
+  .row>*{flex:1;min-width:0}
+  .mini{border:1px solid var(--rule);background:#fff;border-radius:5px;padding:6px 10px;font-size:12.5px}
+  .mini:hover{background:#F4F1EA}
+  .mini.danger{color:var(--bad);border-color:#E7C9C2}
+  .note{font-size:11.5px;color:var(--faint);line-height:1.45;margin:6px 0 0}
+
+  .item{border:1px solid var(--rule);border-radius:6px;background:#fff;padding:9px;margin-bottom:8px}
+  .item .top{display:flex;gap:8px;align-items:flex-start}
+  .item textarea{min-height:40px}
+  .item .x{flex:none;border:0;background:transparent;color:var(--faint);font-size:17px;padding:2px 4px;border-radius:4px;margin-top:2px}
+  .item .x:hover{color:var(--bad);background:#FBEFEC}
+  .item .amt-row{display:flex;align-items:center;gap:8px;margin-top:7px}
+  .item .amt-row label{font-size:11.5px;color:var(--soft);white-space:nowrap}
+  .item .amt-row input{max-width:110px}
+  .items-total{text-align:right;font-size:13px;font-weight:700;margin-top:4px;color:var(--ink)}
+
+  .logo-drop{border:1px dashed var(--rule);border-radius:6px;padding:12px;text-align:center;background:#fff;color:var(--faint);font-size:12.5px;margin-bottom:12px}
+  .logo-drop img{max-height:44px;max-width:150px;display:block;margin:0 auto 7px}
+
+  .sig-pad-wrap{border:1px solid var(--rule);border-radius:6px;background:#fff;padding:8px}
+  canvas.sigpad{width:100%;height:110px;display:block;touch-action:none;cursor:crosshair;border:1px dashed var(--rule);border-radius:4px}
+  .sig-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
+  .sig-stamp{font-size:11px;color:var(--faint);margin-top:6px}
+
+  .sheet-wrap{max-width:210mm;margin:0 auto}
+  .sheet{width:100%;min-height:297mm;background:#fff;color:#111;box-shadow:0 2px 4px rgba(0,0,0,.2),0 18px 50px rgba(0,0,0,.28);padding:20mm 18mm;font-family:var(--serif);font-size:10.8pt;line-height:1.6;position:relative}
+  .doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+  .doc-logo img{max-height:52px;max-width:180px;display:block;margin-bottom:10px}
+  .doc-title{font-size:1.7em;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
+  .doc-sub{color:#5A5E68;font-size:.86em;margin-bottom:18px}
+  .doc-parties{display:flex;gap:24px;margin:18px 0}
+  .doc-parties .p{flex:1}
+  .doc-parties h4{font-size:.74em;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:0 0 4px}
+  .doc-parties .nm{font-weight:700}
+  .doc-parties .ln{color:#4A4E58;font-size:.92em;white-space:pre-line}
+  .rule{height:2px;background:var(--accent);margin:16px 0;border-radius:1px}
+  h3.clause{font-size:1em;margin:22px 0 6px;font-weight:700}
+  .clause-body{white-space:pre-line;color:#2A2D36;font-size:.96em}
+  table.items{width:100%;border-collapse:collapse;margin:14px 0;font-size:.92em}
+  table.items th{background:var(--accent);color:#fff;text-align:left;padding:6px 8px;font-size:.76em;text-transform:uppercase}
+  table.items th.n,table.items td.n{text-align:right;white-space:nowrap}
+  table.items td{padding:7px 8px;border-bottom:1px solid #E6E2D8}
+  table.items tr.total td{border-top:2px solid var(--accent);border-bottom:0;font-weight:700}
+  .sig-block{display:flex;gap:30px;margin-top:34px}
+  .sig-col{flex:1}
+  .sig-line{border-bottom:1px solid #111;height:64px;display:flex;align-items:flex-end;margin-bottom:6px}
+  .sig-line img{max-height:60px}
+  .sig-meta{font-size:.86em;color:#4A4E58}
+  .sig-meta b{color:#111}
+  .integrity{margin-top:22px;padding-top:12px;border-top:1px dashed #C9C4B6;font-size:.72em;color:#8D91A0;font-family:var(--mono)}
+
+  @media (max-width:900px){
+    .workspace{display:block;height:auto;overflow:visible}
+    .panel{width:100%;border-right:0}
+    .stage{padding:14px 10px 70px}
+    .sheet{padding:12mm 10mm}
+  }
+  @page{size:A4;margin:0}
+  @media print{
+    .bar,.panel{display:none!important}
+    .workspace{display:block;height:auto}
+    .stage{padding:0;background:#fff}
+    .sheet-wrap{max-width:none}
+    .sheet{box-shadow:none;width:210mm;min-height:297mm;margin:0 auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="brand"><span class="mark">CP</span>Contract & Proposal Generator <small>Pro</small></div>
+  <div class="spacer"></div>
+  <button class="tbtn" id="btn-new">New</button>
+  <button class="tbtn" id="btn-open">Saved</button>
+  <button class="tbtn" id="btn-save">Save</button>
+  <button class="tbtn solid" id="btn-print">Print / PDF</button>
+</div>
+
+<div class="workspace">
+  <aside class="panel">
+
+    <details class="sec" open>
+      <summary>Document type</summary>
+      <div class="body">
+        <label class="f"><span>Type</span>
+          <select class="in" id="doc-type">
+            <option value="service">Freelance Service Agreement</option>
+            <option value="retainer">Retainer Agreement</option>
+            <option value="contractor">Independent Contractor Agreement</option>
+            <option value="website">Website / Design Project Terms</option>
+            <option value="proposal">Proposal & Scope of Work</option>
+            <option value="nda">Mutual NDA</option>
+          </select>
+        </label>
+        <label class="f"><span>Title</span><input class="in" id="doc-title"></label>
+        <div class="row">
+          <label class="f"><span>Date</span><input type="date" class="in" id="doc-date"></label>
+          <label class="f"><span>Reference #</span><input class="in" id="doc-ref" placeholder="optional"></label>
+        </div>
+        <label class="f"><span>Clause strength</span>
+          <select class="in" id="clause-strength">
+            <option value="standard">Standard</option>
+            <option value="strict">Strict (stronger protection for you)</option>
+          </select>
+        </label>
+        <p class="note">Changes the default wording of confidentiality and liability clauses below. You can still edit them by hand afterwards.</p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Your letterhead</summary>
+      <div class="body">
+        <div class="logo-drop" id="logo-drop">
+          <div id="logo-preview"></div>
+          <button class="mini" id="btn-logo">Add logo</button>
+          <button class="mini danger" id="btn-logo-clear" hidden>Remove</button>
+          <input type="file" id="logo-input" accept="image/*" hidden>
+          <p class="note">PNG or SVG, stored on this device only.</p>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>Party A — you</summary>
+      <div class="body">
+        <label class="f"><span>Name / business</span><input class="in" id="a-name"></label>
+        <label class="f"><span>Address</span><textarea class="in" id="a-address"></textarea></label>
+        <label class="f"><span>Email</span><input class="in" id="a-email"></label>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>Party B — other side</summary>
+      <div class="body">
+        <label class="f"><span>Name / business</span><input class="in" id="b-name"></label>
+        <label class="f"><span>Address</span><textarea class="in" id="b-address"></textarea></label>
+        <label class="f"><span>Email</span><input class="in" id="b-email"></label>
+      </div>
+    </details>
+
+    <details class="sec" open id="sec-scope">
+      <summary>Scope & payment milestones <span class="hint" id="items-hint"></span></summary>
+      <div class="body">
+        <div id="items"></div>
+        <button class="mini" id="btn-add-item">Add milestone</button>
+        <div class="items-total" id="items-total"></div>
+        <p class="note">Each milestone can carry its own amount. The payment table and total fee on the document are built from these automatically.</p>
+      </div>
+    </details>
+
+    <details class="sec" id="sec-payment">
+      <summary>Payment terms</summary>
+      <div class="body">
+        <label class="f"><span>Currency</span>
+          <select class="in" id="pay-currency">
+            <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>AUD</option>
+          </select>
+        </label>
+        <label class="f"><span>Payment instructions</span>
+          <textarea class="in" id="pay-schedule">Each milestone is invoiced on completion and due within 7 days of invoice date.</textarea>
+        </label>
+        <label class="f"><span>Late payment terms</span>
+          <textarea class="in" id="pay-late">Invoices unpaid after 14 days accrue 1.5% monthly interest.</textarea>
+        </label>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Term & termination</summary>
+      <div class="body">
+        <div class="row">
+          <label class="f"><span>Start date</span><input type="date" class="in" id="term-start"></label>
+          <label class="f"><span>End date</span><input type="date" class="in" id="term-end" placeholder="optional"></label>
+        </div>
+        <label class="f"><span>Termination clause</span>
+          <textarea class="in" id="term-clause"></textarea>
+        </label>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Standard clauses</summary>
+      <div class="body">
+        <label class="f"><span>Confidentiality</span><textarea class="in" id="cl-confidentiality"></textarea></label>
+        <label class="f"><span>Intellectual property</span><textarea class="in" id="cl-ip"></textarea></label>
+        <label class="f"><span>Limitation of liability</span><textarea class="in" id="cl-liability"></textarea></label>
+        <label class="f"><span>Governing law</span><input class="in" id="cl-law" placeholder="e.g. the State of Delaware, USA"></label>
+      </div>
+    </details>
+
+    <details class="sec" open>
+      <summary>Signatures</summary>
+      <div class="body">
+        <label class="f"><span>Party A signature — draw below</span></label>
+        <div class="sig-pad-wrap"><canvas class="sigpad" id="sig-a"></canvas></div>
+        <div class="sig-actions"><button class="mini" data-clear-sig="a">Clear</button></div>
+        <div class="sig-stamp" id="sig-a-stamp"></div>
+
+        <label class="f" style="margin-top:16px"><span>Party B signature — draw below</span></label>
+        <div class="sig-pad-wrap"><canvas class="sigpad" id="sig-b"></canvas></div>
+        <div class="sig-actions"><button class="mini" data-clear-sig="b">Clear</button></div>
+        <div class="sig-stamp" id="sig-b-stamp"></div>
+
+        <p class="note">Each signature is timestamped the moment it's drawn. Once both are present, the document gets a tamper-evident integrity code — if anyone edits the text afterwards, the code will no longer match.</p>
+      </div>
+    </details>
+
+    <details class="sec">
+      <summary>Backup</summary>
+      <div class="body">
+        <p class="note" style="margin-top:0">Everything lives in this browser only. Export a backup before clearing browser data or switching computers.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="mini" id="btn-export">Export backup</button>
+          <button class="mini" id="btn-import">Import backup</button>
+        </div>
+        <input type="file" id="import-input" accept="application/json" hidden>
+      </div>
+    </details>
+
+  </aside>
+
+  <section class="stage">
+    <div class="sheet-wrap">
+      <div class="sheet" id="sheet"></div>
+    </div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim" style="position:fixed;inset:0;background:rgba(20,22,28,.45);z-index:55;display:none"></div>
+<aside id="drawer" style="position:fixed;top:0;bottom:0;right:0;width:420px;max-width:92vw;background:var(--paper);box-shadow:-10px 0 40px rgba(0,0,0,.3);z-index:60;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s ease">
+  <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--rule)">
+    <h3 style="margin:0;font-size:15px">Saved documents</h3>
+    <div style="flex:1"></div>
+    <button class="mini" id="btn-close-drawer">Close</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:10px 16px 24px" id="doc-list"></div>
+</aside>
+
+<script>
+"use strict";
+const KEY = "contract-generator-pro-v1";
+const uid = () => Math.random().toString(36).slice(2,9);
+const today = () => new Date().toISOString().slice(0,10);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+
+const STANDARD = {
+  confidentiality:"Both parties agree to keep confidential all non-public information disclosed during this engagement, and not to share it with third parties without written consent.",
+  liability:"Party A's total liability under this agreement is limited to the total fees paid. Neither party is liable for indirect or consequential damages."
+};
+const STRICT = {
+  confidentiality:"Both parties agree to keep confidential all non-public information disclosed during this engagement for a period of five (5) years following termination, and not to share, publish, or use it for any purpose outside this engagement without prior written consent. Breach of this clause entitles the disclosing party to seek injunctive relief in addition to damages.",
+  liability:"Party A's total liability under this agreement, whether in contract, tort or otherwise, shall not exceed the total fees actually paid in the three (3) months preceding the claim. Neither party is liable for indirect, incidental, special or consequential damages, including loss of profits, even if advised of the possibility of such damages."
+};
+
+const TEMPLATES = {
+  service:{
+    title:"Freelance Service Agreement",
+    termination:"Either party may terminate this agreement with 14 days written notice. Work completed and expenses incurred up to the termination date remain payable.",
+    ip:"Upon full payment, all deliverables created under this agreement become the property of Party B. Party A retains the right to display the work in a portfolio unless otherwise agreed in writing."
+  },
+  retainer:{
+    title:"Retainer Agreement",
+    termination:"This retainer renews automatically each period unless either party gives 30 days written notice. Unused retainer hours do not roll over unless stated otherwise.",
+    ip:"Deliverables produced during each retainer period become the property of Party B upon payment for that period. Party A retains the right to display general, non-confidential work in a portfolio."
+  },
+  contractor:{
+    title:"Independent Contractor Agreement",
+    termination:"Either party may terminate this agreement with 14 days written notice. Party A is an independent contractor, not an employee, and is solely responsible for their own taxes, insurance, and benefits.",
+    ip:"All work product created under this agreement is a work made for hire and becomes the exclusive property of Party B upon payment. Party A retains no rights to reuse the work without written permission."
+  },
+  website:{
+    title:"Website / Design Project Terms",
+    termination:"Either party may terminate this project with 14 days written notice. Completed milestones remain payable; unused hosting or domain fees are refunded on a pro-rata basis where applicable.",
+    ip:"Upon full payment, the final website/design files become the property of Party B. Any third-party assets (fonts, stock imagery, plugins) remain subject to their original licenses, which Party B is responsible for maintaining."
+  },
+  proposal:{
+    title:"Proposal & Scope of Work",
+    termination:"This proposal is valid for 30 days from the date above. Formal terms will be set out in a signed service agreement.",
+    ip:"Ownership of deliverables transfers to the client upon full payment, as described in the scope of work below."
+  },
+  nda:{
+    title:"Mutual Non-Disclosure Agreement",
+    termination:"This agreement remains in effect for two (2) years from the date above, or until superseded by a further written agreement between the parties.",
+    ip:"No license or ownership rights to either party's intellectual property are granted under this agreement."
+  }
+};
+
+function blank(){
+  const strength = "standard";
+  return {
+    id: uid(),
+    docType: "service",
+    title: TEMPLATES.service.title,
+    date: today(),
+    ref: "",
+    clauseStrength: strength,
+    logo: "",
+    a: { name:"", address:"", email:"" },
+    b: { name:"", address:"", email:"" },
+    items: [{ id: uid(), desc:"", amount:0 }],
+    pay: { currency:"USD", schedule: "Each milestone is invoiced on completion and due within 7 days of invoice date.", late: "Invoices unpaid after 14 days accrue 1.5% monthly interest." },
+    term: { start: today(), end: "", clause: TEMPLATES.service.termination },
+    clauses: { confidentiality: STANDARD.confidentiality, ip: TEMPLATES.service.ip, liability: STANDARD.liability, law: "" },
+    sigA: null, sigAAt: null, sigB: null, sigBAt: null
+  };
+}
+
+function loadDB(){ try{ return JSON.parse(localStorage.getItem(KEY)) || { docs: [] }; }catch(e){ return { docs: [] }; } }
+function saveDB(db){ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ alert("Could not save — storage may be full or blocked."); } }
+let db = loadDB();
+let S = blank();
+let dirty = false;
+
+function get(id){ return document.getElementById(id); }
+
+function syncFromState(){
+  get("doc-type").value = S.docType;
+  get("doc-title").value = S.title;
+  get("doc-date").value = S.date;
+  get("doc-ref").value = S.ref;
+  get("clause-strength").value = S.clauseStrength;
+  get("a-name").value = S.a.name; get("a-address").value = S.a.address; get("a-email").value = S.a.email;
+  get("b-name").value = S.b.name; get("b-address").value = S.b.address; get("b-email").value = S.b.email;
+  get("pay-currency").value = S.pay.currency;
+  get("pay-schedule").value = S.pay.schedule; get("pay-late").value = S.pay.late;
+  get("term-start").value = S.term.start; get("term-end").value = S.term.end; get("term-clause").value = S.term.clause;
+  get("cl-confidentiality").value = S.clauses.confidentiality;
+  get("cl-ip").value = S.clauses.ip;
+  get("cl-liability").value = S.clauses.liability;
+  get("cl-law").value = S.clauses.law;
+  const isNda = S.docType === "nda";
+  get("sec-scope").style.display = isNda ? "none" : "";
+  get("sec-payment").style.display = isNda ? "none" : "";
+  renderItems();
+  renderLogo();
+  renderSigStamps();
+  render();
+}
+
+function bindField(id, path, isNum){
+  get(id).addEventListener("input", e => {
+    const keys = path.split(".");
+    let obj = S;
+    for(let i=0;i<keys.length-1;i++) obj = obj[keys[i]];
+    obj[keys[keys.length-1]] = isNum ? (parseFloat(e.target.value)||0) : e.target.value;
+    dirty = true;
+    render();
+  });
+}
+["doc-title:title","doc-date:date","doc-ref:ref",
+ "a-name:a.name","a-address:a.address","a-email:a.email",
+ "b-name:b.name","b-address:b.address","b-email:b.email",
+ "pay-schedule:pay.schedule","pay-late:pay.late",
+ "term-start:term.start","term-end:term.end","term-clause:term.clause",
+ "cl-confidentiality:clauses.confidentiality","cl-ip:clauses.ip","cl-liability:clauses.liability","cl-law:clauses.law"
+].forEach(pair => { const [id,path] = pair.split(":"); bindField(id, path); });
+get("pay-currency").addEventListener("change", e => { S.pay.currency = e.target.value; dirty = true; render(); });
+
+get("doc-type").addEventListener("change", e => {
+  const type = e.target.value;
+  S.docType = type;
+  const tpl = TEMPLATES[type];
+  S.title = tpl.title;
+  S.clauses.ip = tpl.ip;
+  S.term.clause = tpl.termination;
+  syncFromState();
+  dirty = true;
+});
+get("clause-strength").addEventListener("change", e => {
+  S.clauseStrength = e.target.value;
+  const set = e.target.value === "strict" ? STRICT : STANDARD;
+  S.clauses.confidentiality = set.confidentiality;
+  S.clauses.liability = set.liability;
+  syncFromState();
+  dirty = true;
+});
+
+/* ---- logo ---- */
+function renderLogo(){
+  const prev = get("logo-preview");
+  const clear = get("btn-logo-clear");
+  prev.innerHTML = S.logo ? `<img src="${S.logo}" alt="Your logo">` : "";
+  clear.hidden = !S.logo;
+}
+get("btn-logo").onclick = () => get("logo-input").click();
+get("logo-input").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  if(f.size > 900*1024){ alert("Logo is over 900 KB. Use a smaller file."); return; }
+  const r = new FileReader();
+  r.onload = () => { S.logo = r.result; dirty = true; renderLogo(); render(); };
+  r.readAsDataURL(f);
+};
+get("btn-logo-clear").onclick = () => { S.logo = ""; dirty = true; renderLogo(); render(); };
+
+/* ---- scope / milestone items ---- */
+function renderItems(){
+  get("items").innerHTML = S.items.map((it,i) => `
+    <div class="item">
+      <div class="top">
+        <textarea class="in" data-i="${i}" data-f="desc" placeholder="Milestone or deliverable">${esc(it.desc)}</textarea>
+        <button class="x" data-del="${i}">×</button>
+      </div>
+      <div class="amt-row">
+        <label>Amount</label>
+        <input type="number" step="0.01" class="in" data-i="${i}" data-f="amount" value="${it.amount||0}">
+      </div>
+    </div>`).join("");
+  updateItemsTotal();
+}
+function updateItemsTotal(){
+  const total = S.items.reduce((a,i)=>a+(parseFloat(i.amount)||0),0);
+  get("items-total").textContent = "Total: " + fmtMoney(total, S.pay.currency);
+  get("items-hint").textContent = fmtMoney(total, S.pay.currency);
+}
+get("items").addEventListener("input", e => {
+  const el = e.target.closest("[data-i]"); if(!el) return;
+  const i = +el.dataset.i, f = el.dataset.f;
+  S.items[i][f] = f === "amount" ? (parseFloat(el.value)||0) : el.value;
+  dirty = true;
+  if(f === "amount") updateItemsTotal();
+  render();
+});
+get("items").addEventListener("click", e => {
+  const b = e.target.closest("[data-del]"); if(!b) return;
+  S.items.splice(+b.dataset.del,1);
+  if(!S.items.length) S.items.push({id:uid(),desc:"",amount:0});
+  renderItems(); render();
+});
+get("btn-add-item").onclick = () => {
+  S.items.push({id:uid(), desc:"", amount:0});
+  renderItems();
+  const last = get("items").querySelector(".item:last-child textarea");
+  if(last) last.focus();
+};
+
+/* ---- signature pads ---- */
+function setupPad(canvas, dataKey, atKey){
+  const ctx = canvas.getContext("2d");
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const prevData = S[dataKey] || null;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#111";
+    if(prevData){
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = prevData;
+    }
+  }
+  resize();
+  let drawing = false, lastX = 0, lastY = 0;
+  function pos(e){
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+  }
+  function start(e){ drawing = true; const p = pos(e); lastX = p.x; lastY = p.y; e.preventDefault(); }
+  function move(e){
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+    e.preventDefault();
+  }
+  function end(){
+    if(!drawing) return;
+    drawing = false;
+    S[dataKey] = canvas.toDataURL("image/png");
+    S[atKey] = Date.now();
+    dirty = true;
+    renderSigStamps();
+    render();
+  }
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, {passive:false});
+  canvas.addEventListener("touchmove", move, {passive:false});
+  canvas.addEventListener("touchend", end);
+  return { ctx, resize };
+}
+const padA = setupPad(get("sig-a"), "sigA", "sigAAt");
+const padB = setupPad(get("sig-b"), "sigB", "sigBAt");
+
+function drawSigFromData(which){
+  const canvas = get("sig-" + which);
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const data = which === "a" ? S.sigA : S.sigB;
+  if(data){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    img.src = data;
+  }
+}
+function renderSigStamps(){
+  get("sig-a-stamp").textContent = S.sigAAt ? "Signed " + new Date(S.sigAAt).toLocaleString() : "Not yet signed";
+  get("sig-b-stamp").textContent = S.sigBAt ? "Signed " + new Date(S.sigBAt).toLocaleString() : "Not yet signed";
+  drawSigFromData("a"); drawSigFromData("b");
+}
+document.querySelectorAll("[data-clear-sig]").forEach(btn => {
+  btn.onclick = () => {
+    const which = btn.dataset.clearSig;
+    const canvas = get("sig-" + which);
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(which === "a"){ S.sigA = null; S.sigAAt = null; } else { S.sigB = null; S.sigBAt = null; }
+    dirty = true; renderSigStamps(); render();
+  };
+});
+
+/* ---- integrity hash ---- */
+async function computeIntegrityHash(){
+  const material = JSON.stringify({
+    title:S.title, date:S.date, ref:S.ref,
+    a:S.a, b:S.b, items:S.items, pay:S.pay, term:S.term, clauses:S.clauses,
+    sigA:S.sigA, sigAAt:S.sigAAt, sigB:S.sigB, sigBAt:S.sigBAt
+  });
+  try{
+    const enc = new TextEncoder().encode(material);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).slice(0,8).map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+  }catch(e){ return null; }
+}
+
+/* ---- document render ---- */
+function fmtMoney(n, code){
+  try{ return new Intl.NumberFormat(undefined,{style:"currency",currency:code}).format(n||0); }
+  catch(e){ return `${code} ${(n||0).toFixed(2)}`; }
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  try{ return new Date(iso+"T00:00:00").toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}); }
+  catch(e){ return iso; }
+}
+
+let renderToken = 0;
+function render(){
+  const myToken = ++renderToken;
+  const sheet = get("sheet");
+  const isNda = S.docType === "nda";
+  const total = S.items.reduce((a,i)=>a+(parseFloat(i.amount)||0),0);
+
+  const scopeHTML = (!isNda && S.items.some(i=>i.desc.trim())) ? `
+    <h3 class="clause">Scope & Payment Schedule</h3>
+    <table class="items">
+      <thead><tr><th>#</th><th>Milestone</th><th class="n">Amount</th></tr></thead>
+      <tbody>
+        ${S.items.filter(i=>i.desc.trim()).map((it,i)=>`<tr><td>${i+1}</td><td>${esc(it.desc)}</td><td class="n">${fmtMoney(it.amount, S.pay.currency)}</td></tr>`).join("")}
+        <tr class="total"><td></td><td>Total fee</td><td class="n">${fmtMoney(total, S.pay.currency)}</td></tr>
+      </tbody>
+    </table>
+    <div class="clause-body">${esc(S.pay.schedule)}\n\n${esc(S.pay.late)}</div>` : "";
+
+  const termHTML = `
+    <h3 class="clause">Term${S.term.end ? "" : " & Termination"}</h3>
+    <div class="clause-body">${S.term.start ? `This agreement begins on ${fmtDate(S.term.start)}` : ""}${S.term.end ? ` and ends on ${fmtDate(S.term.end)}.` : (S.term.start ? " and continues until completion or termination as described below." : "")}\n\n${esc(S.term.clause)}</div>`;
+
+  const lawHTML = S.clauses.law ? `<h3 class="clause">Governing Law</h3><div class="clause-body">This agreement is governed by the laws of ${esc(S.clauses.law)}.</div>` : "";
+
+  sheet.innerHTML = `
+    <div class="doc-head">
+      <div style="flex:1">
+        ${S.logo ? `<div class="doc-logo"><img src="${S.logo}" alt=""></div>` : ""}
+        <div class="doc-title">${esc(S.title)}</div>
+        <div class="doc-sub">${S.ref ? `Ref ${esc(S.ref)} &middot; ` : ""}${fmtDate(S.date)}</div>
+      </div>
+    </div>
+
+    <div class="doc-parties">
+      <div class="p"><h4>Party A</h4><div class="nm">${esc(S.a.name) || "—"}</div>
+        <div class="ln">${esc(S.a.address).replace(/\n/g,"<br>")}</div>
+        <div class="ln">${esc(S.a.email)}</div></div>
+      <div class="p"><h4>Party B</h4><div class="nm">${esc(S.b.name) || "—"}</div>
+        <div class="ln">${esc(S.b.address).replace(/\n/g,"<br>")}</div>
+        <div class="ln">${esc(S.b.email)}</div></div>
+    </div>
+    <div class="rule"></div>
+
+    ${scopeHTML}
+    ${termHTML}
+
+    <h3 class="clause">Confidentiality</h3>
+    <div class="clause-body">${esc(S.clauses.confidentiality)}</div>
+
+    <h3 class="clause">Intellectual Property</h3>
+    <div class="clause-body">${esc(S.clauses.ip)}</div>
+
+    <h3 class="clause">Limitation of Liability</h3>
+    <div class="clause-body">${esc(S.clauses.liability)}</div>
+
+    ${lawHTML}
+
+    <div class="sig-block">
+      <div class="sig-col">
+        <div class="sig-line">${S.sigA ? `<img src="${S.sigA}" alt="Party A signature">` : ""}</div>
+        <div class="sig-meta"><b>${esc(S.a.name) || "Party A"}</b><br>${S.sigAAt ? new Date(S.sigAAt).toLocaleString() : "Not yet signed"}</div>
+      </div>
+      <div class="sig-col">
+        <div class="sig-line">${S.sigB ? `<img src="${S.sigB}" alt="Party B signature">` : ""}</div>
+        <div class="sig-meta"><b>${esc(S.b.name) || "Party B"}</b><br>${S.sigBAt ? new Date(S.sigBAt).toLocaleString() : "Not yet signed"}</div>
+      </div>
+    </div>
+    <div class="integrity" id="integrity-line">${(S.sigA && S.sigB) ? "Computing document integrity code…" : "Document integrity code appears once both parties have signed."}</div>
+  `;
+
+  if(S.sigA && S.sigB){
+    computeIntegrityHash().then(hash => {
+      if(myToken !== renderToken || !hash) return;
+      const el = document.getElementById("integrity-line");
+      if(el) el.textContent = `Document integrity code: ${hash}  ·  Any edit to this document after signing will change this code.`;
+    });
+  }
+}
+
+/* ---- save / open / new ---- */
+function saveDoc(){
+  const i = db.docs.findIndex(d => d.id === S.id);
+  const snap = JSON.parse(JSON.stringify(S));
+  snap.savedAt = Date.now();
+  if(i >= 0) db.docs[i] = snap; else db.docs.unshift(snap);
+  saveDB(db); dirty = false; renderDocList();
+  flash("Saved");
+}
+get("btn-save").onclick = saveDoc;
+
+function renderDocList(){
+  const el = get("doc-list");
+  if(!db.docs.length){ el.innerHTML = '<div style="color:var(--faint);text-align:center;padding:30px 10px;font-size:13px">Nothing saved yet.</div>'; return; }
+  el.innerHTML = db.docs.map(d => `
+    <div style="border:1px solid var(--rule);border-radius:6px;background:#fff;padding:10px 12px;margin-bottom:8px">
+      <div style="font-weight:600">${esc(d.title)}</div>
+      <div style="font-size:12px;color:var(--faint);margin:2px 0 8px">${esc(d.b.name || "No counterparty")} · ${fmtDate(d.date)}</div>
+      <div style="display:flex;gap:6px">
+        <button class="mini" data-open="${d.id}">Open</button>
+        <button class="mini" data-dup="${d.id}">Duplicate</button>
+        <button class="mini danger" data-rm="${d.id}">Delete</button>
+      </div>
+    </div>`).join("");
+}
+get("doc-list").addEventListener("click", e => {
+  const b = e.target.closest("button[data-open],button[data-dup],button[data-rm]");
+  if(!b) return;
+  if(b.dataset.open){
+    S = JSON.parse(JSON.stringify(db.docs.find(d=>d.id===b.dataset.open)));
+    dirty = false; syncFromState(); closeDrawer(); flash("Opened");
+  } else if(b.dataset.dup){
+    const src = db.docs.find(d=>d.id===b.dataset.dup);
+    S = JSON.parse(JSON.stringify(src)); S.id = uid();
+    S.sigA = null; S.sigAAt = null; S.sigB = null; S.sigBAt = null;
+    dirty = true; syncFromState(); closeDrawer(); flash("Duplicated as a new, unsigned draft");
+  } else if(b.dataset.rm){
+    if(confirm("Delete this document? This cannot be undone.")){
+      db.docs = db.docs.filter(d => d.id !== b.dataset.rm);
+      saveDB(db); renderDocList();
+    }
+  }
+});
+
+get("btn-new").onclick = () => { S = blank(); dirty = false; syncFromState(); flash("New document"); };
+get("btn-print").onclick = () => window.print();
+
+const drawer = get("drawer"), scrim = get("scrim");
+function openDrawer(){ renderDocList(); drawer.style.transform = "translateX(0)"; scrim.style.display = "block"; }
+function closeDrawer(){ drawer.style.transform = "translateX(100%)"; scrim.style.display = "none"; }
+get("btn-open").onclick = openDrawer;
+get("btn-close-drawer").onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+
+function flash(msg){
+  let t = document.getElementById("toast-el");
+  if(!t){
+    t = document.createElement("div");
+    t.id = "toast-el";
+    t.style.cssText = "position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#F3F1EC;padding:9px 16px;border-radius:7px;font-size:13px;z-index:80;transition:opacity .2s";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = "1";
+  clearTimeout(window.__toastT);
+  window.__toastT = setTimeout(()=>{ t.style.opacity = "0"; }, 1800);
+}
+
+get("btn-export").onclick = () => {
+  const blob = new Blob([JSON.stringify(db,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `contracts-backup-${today()}.json`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 300);
+};
+get("btn-import").onclick = () => get("import-input").click();
+get("import-input").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const incoming = JSON.parse(r.result);
+      if(!incoming || !Array.isArray(incoming.docs)) throw 0;
+      const ids = new Set(db.docs.map(d=>d.id));
+      db.docs = db.docs.concat(incoming.docs.filter(d=>!ids.has(d.id)));
+      saveDB(db); renderDocList(); flash("Backup imported");
+    }catch(err){ alert("That file is not a valid backup."); }
+    e.target.value = "";
+  };
+  r.readAsText(f);
+};
+
+window.addEventListener("beforeunload", e => { if(dirty){ e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("resize", () => { padA.resize(); padB.resize(); drawSigFromData("a"); drawSigFromData("b"); });
+
+syncFromState();
+</script>
+</body>
+</html>
