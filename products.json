@@ -13,5 +13,10 @@
     "name": "Contract & Proposal Generator Pro",
     "priceUSD": 50,
     "file": "products/contract-proposal-generator-pro.zip"
+  },
+  "creator-command-center": {
+    "name": "Creator Command Center",
+    "priceUSD": 120,
+    "file": "products/creator-command-center.zip"
   }
 }
