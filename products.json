@@ -28,5 +28,15 @@
     "name": "Creator Command Center",
     "priceUSD": 120,
     "file": "products/creator-command-center.zip"
+  },
+  "certify-studio-solo": {
+    "name": "Certify Studio — Solo",
+    "priceUSD": 39,
+    "file": "products/certify-studio.html"
+  },
+  "certify-studio-pro": {
+    "name": "Certify Studio — Pro",
+    "priceUSD": 69,
+    "file": "products/certify-studio.html"
   }
 }
