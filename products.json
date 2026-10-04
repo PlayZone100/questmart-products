@@ -48,5 +48,10 @@
     "name": "Daily Planner & Task Board",
     "priceUSD": 5,
     "file": "files/daily-planner-task-board.html"
+  },
+  "margin-matrix": {
+    "name": "MarginMatrix",
+    "priceUSD": 9,
+    "file": "files/margin-matrix.html"
   }
 }
